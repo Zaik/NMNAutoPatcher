@@ -1,0 +1,3 @@
+import sys
+print("DUMMY SCRIPT IMPLEMENTATION, DOES NOTHING")
+sys.exit(1)
