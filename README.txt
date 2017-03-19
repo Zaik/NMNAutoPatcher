@@ -7,5 +7,5 @@ Usage: Simple drag and drop your vanilla PAL ISO or NMNB ISO onto the bat file n
 If everything goes well, the utility will download info on what patches are available and generate a new ISO
 file for you that is the latest version.
 
-If things do go wrong, contact Zaik in the Nordic Melee Netplay group or email him at jonatan.waern@gmail.com
+If things do go wrong, contact Zaik in the Nordic Melee Netplay group or email him at jonatanwaern@gmail.com
 with the error message and he'll get back to you as soon as he can.
