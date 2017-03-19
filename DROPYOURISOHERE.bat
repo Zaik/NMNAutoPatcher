@@ -52,7 +52,7 @@ goto exit
 echo.
 echo  Now attempting to obtain the latest patchinfo file from the server
 echo  Starting python script...
-python35 obtain_patch_info.py || goto :failedObtainPatches
+obtain_patch_info.exe || goto :failedObtainPatches
 echo  Patches succesfully obtained!
 goto :checkPatchExistance
 
@@ -67,7 +67,7 @@ if %continue%==no goto exit
 
 :checkPatchExistance
 echo  Now attempting to read and apply patches
-python35 read_and_apply_patch_info.py "%originalISO%" "%certUtilExists%" || goto :failedApply
+read_and_apply_patch_info.exe "%originalISO%" "%certUtilExists%" || goto :failedApply
 echo  Succesfull! You should now have the latest version of NMNB!
 goto exit
 

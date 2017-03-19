@@ -3,7 +3,8 @@ This is the Nordic Melee Netplay Build auto-patcher.
 The purpose of this executable is to take you from any version of the Nordic Melee Netplay Build or vanilla
 PAL ISO to the latest version of the Nordic Melee Netplay Build.
 
-Usage: Simple drag and drop your vanilla PAL ISO or NMNB ISO onto the bat file named "DROPYOURISOHERE.bat"
+Usage: Move your current vanilla PAL ISO or NMNB ISO into the same directory you extracted the .rar from,
+then simply drag and drop your ISO onto the bat file named "DROPYOURISOHERE.bat".
 If everything goes well, the utility will download info on what patches are available and generate a new ISO
 file for you that is the latest version.
 
