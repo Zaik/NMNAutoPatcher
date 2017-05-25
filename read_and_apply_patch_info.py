@@ -152,18 +152,22 @@ viable_paths.sort(key = len)
 patch_path = viable_paths[0]
 indent_print("Done")
 
-if len(patch_path) > 1:
-	indent_print("Merging patches...")
-	merged_delta_name = os.path.join(repo_dir, "merged_patch_{0}_to_{1}.xdelta".format(current_version, latest_version))
-	subprocess.check_call("xdelta3-x86_64-3.0.10.exe -f " + " ".join(["-m " + "\"" + patch + "\"" for patch in patch_path[:-1]]) + " \"" + patch_path[-1] + "\" \"" + merged_delta_name + "\"")
-	indent_print("Done")
-else:
-	merged_delta_name = patch_path[0]
+source_file = orig_file
 
-indent_print("Applying merged patch...")
-output_file = "NordicMeleeNetplayBuildv{0}.iso".format(latest_version)
-subprocess.check_call('xdelta3-x86_64-3.0.10.exe -f -d -s "{0}" "{1}" "{2}"'.format(orig_file, merged_delta_name, output_file))
+indent_print("Patching...")
+for index, patch in enumerate(patch_path):
+	if patch is patch_path[-1]:
+		output_file = "NordicMeleeNetplayBuildv{0}.iso".format(latest_version)
+	else:
+		output_file = "NordicMeleeNetplayBuild_temp{}.iso".format(index)
+	indent_print("Applying {}".format(patch))
+	subprocess.check_call('xdelta3-x86_64-3.0.10.exe -f -d -s "{0}" "{1}" "{2}"'.format(source_file, patch, output_file))
+	if index != 0:
+		indent_print("Removing previous temporary file")
+		os.remove(source_file)
+	source_file = output_file
 indent_print("Done")
+
 if not has_cert_utils:
 	indent_print("WARNING: CertUtils is not available, cannot verify integrity of generated file")
 else:
