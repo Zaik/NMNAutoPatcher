@@ -10,8 +10,6 @@ import os
 import platform
 import hashlib
 
-has_cert_utils = False
-
 repo_dir = "patchAndVersionFiles"
 
 indent = " "
@@ -37,14 +35,10 @@ if len(sys.argv) < 2:
 	indent_print("This utility requires at least one argument (the file that is the source for the patches)")
 	indent_print("Exiting...")
 	sys.exit(1)
-orig_file = sys.argv[1]
 
+orig_file = sys.argv[1]
 if len(sys.argv) > 2:
-	if len(sys.argv) > 3:
-		indent_print("This utility script takes at most 2 arguments, ignoring extra arguments...")
-	arg = sys.argv[2]
-	if arg == "true":
-		has_cert_utils = True
+	indent_print("This utility script takes at most 1 arguments, ignoring extra arguments...")
 
 #format: (<patch_file>, <from_version>, <to_version>)
 xdelta_patch_set = set()
@@ -94,30 +88,11 @@ current_version = None
 
 indent_print("Determining original ISO version...")
 #determine version of current ISO
-if is_windows:
-	# TODO: this is actually not necessary since we can just use python md5 for windows too
-	if has_cert_utils:
-		#obtain md5 of ISO to automatically determine version
-		try:
-			hash = subprocess.check_output(" ".join(["CertUtil", "-hashfile", "\"" + orig_file + "\"", "\"MD5\""]), shell = True)
-			hash = hash.split(b'\n')[1]
-			hash = hash.decode('utf-8')
-			hash = ''.join([ch for ch in hash if ch.isalnum()])
-		except subprocess.CalledProcessError as E:
-			indent_print("Error in checking hash: " + str(E) + "\n" + str(E.output))
-			hash = None
-		if hash not in md5_version_map:
-			indent_print("WARNING: Your ISOs md5 does not match any known versions, you can specify the version manually but this is NOT recommended when the md5 does not match")
-		else:
-			current_version = md5_version_map[hash][0]
-	else:
-		indent_print("'CertUtil' program is not available")
+hash = file_md5(orig_file)
+if hash not in md5_version_map:
+	indent_print("WARNING: Your ISOs md5 does not match any known versions, you can specify the version manually but this is NOT recommended when the md5 does not match")
 else:
-	hash = file_md5(orig_file)
-	if hash not in md5_version_map:
-		indent_print("WARNING: Your ISOs md5 does not match any known versions, you can specify the version manually but this is NOT recommended when the md5 does not match")
-	else:
-		current_version = md5_version_map[hash][0]
+	current_version = md5_version_map[hash][0]
 
 
 
@@ -203,32 +178,12 @@ for index, patch in enumerate(patch_path):
 	source_file = output_file
 indent_print("Done")
 
-if is_windows:
-	if not has_cert_utils:
-		indent_print("WARNING: CertUtils is not available, cannot verify integrity of generated file")
-	else:
-		indent_print("Verifying integrity of generated file")
-		try:
-			hash = subprocess.check_output(" ".join(["CertUtil", "-hashfile", output_file, "\"MD5\""]), shell = True)
-			hash = hash.split(b'\n')[1]
-			hash = hash.decode('utf-8')
-			hash = ''.join([ch for ch in hash if ch.isalnum()])
-		except subprocess.CalledProcessError as E:
-			indent_print("Error in checking hash: " + str(E) + "\n") + str(E.output)
-			hash = None
-		if hash is not None:
-			if hash not in md5_version_map or md5_version_map[hash][0] != latest_version:
-				indent_print("WARNING: The hash of the generated file does not match the expected hash. Most likely it is not correct")
-				sys.exit(1)
-			else:
-				indent_print("Verified!")
+indent_print("Verifying integrity of generated file")
+hash = file_md5(output_file)
+if hash not in md5_version_map or md5_version_map[hash][0] != latest_version:
+	indent_print("WARNING: The hash of the generated file does not match the expected hash. Most likely it is not correct")
+	sys.exit(1)
 else:
-	indent_print("Verifying integrity of generated file")
-	hash = file_md5(output_file)
-	if hash not in md5_version_map or md5_version_map[hash][0] != latest_version:
-		indent_print("WARNING: The hash of the generated file does not match the expected hash. Most likely it is not correct")
-		sys.exit(1)
-	else:
-		indent_print("Verified!")
+	indent_print("Verified!")
 
 indent_print("Patching complete, exiting python script")

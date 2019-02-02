@@ -72,7 +72,6 @@ try:
 		python_executable,
 		"read_and_apply_patch_info.py",
 		original_iso,
-		'true' if cert_util_exists else 'false'
 	])
 except subprocess.CalledProcessError:
 	indent_print("Something went wrong while reading or applying patches")
