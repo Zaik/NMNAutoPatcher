@@ -31,12 +31,12 @@ else:
 try:
 	original_iso = sys.argv[1]
 except IndexError:
-	indent_print(
-		"To use this, drag-and-drop your Vanilla PAL ISO or Nordic "
-		"Melee Netplay Build iso (any version, not Melee Netplay "
-		"Community Build though)  onto the batch file."
-	)
-	indent_print("(That is, the actual file icon in the folder, not this window.)")
+	indent_print("run this utility from the command line, like this:".format(sys.argv[0])
+	indent_print("")
+	indent_print("{} '/path/to/Super Smash Bros Melee.iso'".format(sys.argv[0])
+	indent_print("")
+	indent_print("The ISO file can be the Vanilla PAL ISO or Nordic Melee Netplay Build iso (any version, not Melee Netplay Community Build though)")
+	indent_print("")
 	sys.exit(1)
 
 # Confirm existence of the relevant utilities
