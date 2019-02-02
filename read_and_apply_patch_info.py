@@ -7,6 +7,8 @@ import sys
 import csv
 import subprocess
 import os
+import platform
+import hashlib
 
 has_cert_utils = False
 
@@ -15,6 +17,21 @@ repo_dir = "patchAndVersionFiles"
 indent = " "
 def indent_print(*args, **kwargs):
 	print(indent, *args, **kwargs)
+
+def file_md5(file_path):
+	# Stack Overflow Driven Programming: https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
+	hash_md5 = hashlib.md5()
+	with open(file_path, 'rb') as f:
+		for chunk in iter(lambda: f.read(4096), b""):
+			hash_md5.update(chunk)
+	return hash_md5.hexdigest()
+
+if platform.system() == 'Windows':
+	is_windows = True
+	xdelta_command = 'xdelta3-x86_64-3.0.10.exe'
+else:
+	is_windows = False
+	xdelta_command = 'xdelta3'
 
 if len(sys.argv) < 2:
 	indent_print("This utility requires at least one argument (the file that is the source for the patches)")
@@ -77,22 +94,32 @@ current_version = None
 
 indent_print("Determining original ISO version...")
 #determine version of current ISO
-if has_cert_utils:
-	#obtain md5 of ISO to automatically determine version
-	try:
-		hash = subprocess.check_output(" ".join(["CertUtil", "-hashfile", "\"" + orig_file + "\"", "\"MD5\""]), shell = True)
-		hash = hash.split(b'\n')[1]
-		hash = hash.decode('utf-8')
-		hash = ''.join([ch for ch in hash if ch.isalnum()])
-	except subprocess.CalledProcessError as E:
-		indent_print("Error in checking hash: " + str(E) + "\n" + str(E.output))
-		hash = None
+if is_windows:
+	# TODO: this is actually not necessary since we can just use python md5 for windows too
+	if has_cert_utils:
+		#obtain md5 of ISO to automatically determine version
+		try:
+			hash = subprocess.check_output(" ".join(["CertUtil", "-hashfile", "\"" + orig_file + "\"", "\"MD5\""]), shell = True)
+			hash = hash.split(b'\n')[1]
+			hash = hash.decode('utf-8')
+			hash = ''.join([ch for ch in hash if ch.isalnum()])
+		except subprocess.CalledProcessError as E:
+			indent_print("Error in checking hash: " + str(E) + "\n" + str(E.output))
+			hash = None
+		if hash not in md5_version_map:
+			indent_print("WARNING: Your ISOs md5 does not match any known versions, you can specify the version manually but this is NOT recommended when the md5 does not match")
+		else:
+			current_version = md5_version_map[hash][0]
+	else:
+		indent_print("'CertUtil' program is not available")
+else:
+	hash = file_md5(orig_file)
 	if hash not in md5_version_map:
 		indent_print("WARNING: Your ISOs md5 does not match any known versions, you can specify the version manually but this is NOT recommended when the md5 does not match")
 	else:
 		current_version = md5_version_map[hash][0]
-else:
-	indent_print("'CertUtil' program is not available")
+
+
 
 if current_version == None:
 	indent_print("Do you want to specify current version manually?")
@@ -161,29 +188,47 @@ for index, patch in enumerate(patch_path):
 	else:
 		output_file = "NordicMeleeNetplayBuild_temp{}.iso".format(index)
 	indent_print("Applying {}".format(patch))
-	subprocess.check_call('xdelta3-x86_64-3.0.10.exe -f -d -s "{0}" "{1}" "{2}"'.format(source_file, patch, output_file))
+	subprocess.check_call([
+		xdelta_command,
+		'-f',
+		'-d',
+		'-s',
+		source_file,
+		patch,
+		output_file,
+	])
 	if index != 0:
 		indent_print("Removing previous temporary file")
 		os.remove(source_file)
 	source_file = output_file
 indent_print("Done")
 
-if not has_cert_utils:
-	indent_print("WARNING: CertUtils is not available, cannot verify integrity of generated file")
+if is_windows:
+	if not has_cert_utils:
+		indent_print("WARNING: CertUtils is not available, cannot verify integrity of generated file")
+	else:
+		indent_print("Verifying integrity of generated file")
+		try:
+			hash = subprocess.check_output(" ".join(["CertUtil", "-hashfile", output_file, "\"MD5\""]), shell = True)
+			hash = hash.split(b'\n')[1]
+			hash = hash.decode('utf-8')
+			hash = ''.join([ch for ch in hash if ch.isalnum()])
+		except subprocess.CalledProcessError as E:
+			indent_print("Error in checking hash: " + str(E) + "\n") + str(E.output)
+			hash = None
+		if hash is not None:
+			if hash not in md5_version_map or md5_version_map[hash][0] != latest_version:
+				indent_print("WARNING: The hash of the generated file does not match the expected hash. Most likely it is not correct")
+				sys.exit(1)
+			else:
+				indent_print("Verified!")
 else:
 	indent_print("Verifying integrity of generated file")
-	try:
-		hash = subprocess.check_output(" ".join(["CertUtil", "-hashfile", output_file, "\"MD5\""]), shell = True)
-		hash = hash.split(b'\n')[1]
-		hash = hash.decode('utf-8')
-		hash = ''.join([ch for ch in hash if ch.isalnum()])
-	except subprocess.CalledProcessError as E:
-		indent_print("Error in checking hash: " + str(E) + "\n") + str(E.output)
-		hash = None
-	if hash is not None:
-		if hash not in md5_version_map or md5_version_map[hash][0] != latest_version:
-			indent_print("WARNING: The hash of the generated file does not match the expected hash. Most likely it is not correct")
-			sys.exit(1)
-		else:
-			indent_print("Verified!")
+	hash = file_md5(output_file)
+	if hash not in md5_version_map or md5_version_map[hash][0] != latest_version:
+		indent_print("WARNING: The hash of the generated file does not match the expected hash. Most likely it is not correct")
+		sys.exit(1)
+	else:
+		indent_print("Verified!")
+
 indent_print("Patching complete, exiting python script")
